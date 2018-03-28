@@ -137,9 +137,10 @@ abstract class DnsResolveContext<T> {
     abstract T convertRecord(DnsRecord record, String hostname, DnsRecord[] additionals, EventLoop eventLoop);
 
     /**
-     * Returns {@code true} if the given list contains any expected records.
+     * Returns {@code true} if the given list contains any expected records. {@code finalResult} always contains
+     * at least one element.
      */
-    abstract boolean gotResult(List<T> finalResult);
+    abstract boolean containsExpectedResult(List<T> finalResult);
 
     /**
      * Caches a successful resolution.
@@ -547,9 +548,9 @@ abstract class DnsResolveContext<T> {
             if (finalResult == null) {
                 finalResult = new ArrayList<T>(8);
             }
+            finalResult.add(converted);
 
             cache(hostname, additionals, r, converted);
-            finalResult.add(converted);
             found = true;
 
             // Note that we do not break from the loop here, so we decode/cache all A/AAAA records.
@@ -641,12 +642,12 @@ abstract class DnsResolveContext<T> {
             queryLifecycleObserver.queryCancelled(allowedQueries);
 
             // There are still some queries we did not receive responses for.
-            if (finalResult != null && gotResult(finalResult)) {
+            if (finalResult != null && containsExpectedResult(finalResult)) {
                 // But it's OK to finish the resolution process if we got something expected.
                 finishResolve(promise, cause);
             }
 
-            // We did not get any thing interesting, so we can't finish the resolution process.
+            // We did not get an expected result yet, so we can't finish the resolution process.
             return;
         }
 
